@@ -17,8 +17,6 @@ services:
         generateValue: true
       - key: DJANGO_DEBUG
         value: "false"
-      - key: DJANGO_ALLOWED_HOSTS
-        value: videohub.onrender.com
       - key: DJANGO_SQLITE_PATH
         value: /var/data/db.sqlite3
       - key: DJANGO_MEDIA_ROOT

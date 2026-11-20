@@ -5,9 +5,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-only-videohub-secret-key-change-before-deploy')
 
-DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
+DEBUG = (
+    os.environ.get('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
+    and os.environ.get('RENDER', '').lower() != 'true'
+)
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "yahyovdhub.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://yahyovdhub.onrender.com"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
