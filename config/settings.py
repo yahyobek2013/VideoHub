@@ -5,13 +5,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-only-videohub-secret-key-change-before-deploy')
 
-DEBUG = (
+_DEVELOPMENT_MODE = (
     os.environ.get('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
     and os.environ.get('RENDER', '').lower() != 'true'
 )
-
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "yahyovdhub.onrender.com"]
-CSRF_TRUSTED_ORIGINS = ["https://yahyovdhub.onrender.com"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -33,7 +30,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-if not DEBUG:
+if not _DEVELOPMENT_MODE:
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'config.urls'
@@ -80,7 +77,7 @@ STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
-        if DEBUG else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        if _DEVELOPMENT_MODE else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 MEDIA_URL = '/media/'
@@ -96,5 +93,9 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not _DEVELOPMENT_MODE
+CSRF_COOKIE_SECURE = not _DEVELOPMENT_MODE
+
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "yahyovdhub.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://yahyovdhub.onrender.com"]
+DEBUG = False
