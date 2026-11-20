@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}{% if page_title %}{{ page_title }}{% else %}Videolar · VideoHub{% endif %}{% endblock %}
+{% block content %}
+<section class="catalog-intro"><div><span class="eyebrow"><i></i> VIDEOHUB / TOMOSHA QILING</span><h1>{% if page_title %}{{ page_title }}{% else %}Salom,<br><em>{{ request.user.first_name|default:request.user.phone }}!</em>{% endif %}</h1><p>{% if active_list %}Shaxsiy video to‘plamingiz.{% else %}Bugun nimani tomosha qilamiz?{% endif %}</p></div><div class="intro-index"><span>VH</span><small>01 / PLAY</small></div></section>
+{% if not active_list %}<section class="category-strip" aria-label="Kategoriyalar"><a href="{% url 'home' %}" class="category-chip {% if not selected_category %}is-selected{% endif %}">Barchasi</a>{% for category in categories %}<a href="{% url 'home' %}?category={{ category.slug }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="category-chip {% if selected_category == category.slug %}is-selected{% endif %}">{{ category.name }} <small>{{ category.video_total|default:category.videos.count }}</small></a>{% endfor %}</section>{% endif %}
+{% if query %}<div class="search-summary"><span>“{{ query }}” uchun natijalar</span><a href="{% url 'home' %}">Tozalash ×</a></div>{% endif %}
+<div class="video-grid">
+	{% for video in videos %}
+	<article class="video-card">
+		<a class="video-cover" href="{% url 'video_detail' video.slug %}">
+			{% if video.thumbnail %}<img src="{{ video.thumbnail.url }}" alt="{{ video.title }} muqova rasmi" loading="lazy">{% else %}<div class="cover-placeholder"><span>VH</span><small>{{ video.category.name }}</small></div>{% endif %}
+			<span class="cover-play">▶</span><span class="cover-category">{{ video.category.name }}</span>
+		</a>
+		<div class="video-card-body"><a href="{% url 'video_detail' video.slug %}" class="video-title">{{ video.title }}</a><p class="video-description">{{ video.description|truncatechars:105 }}</p>
+			<div class="video-card-meta"><span>◉ {{ video.views }} ko‘rish</span><span>{{ video.like_total|default:video.likes.count }} like · {{ video.reaction_total|default:video.reactions.count }} reaksiya</span></div>
+			<div class="video-card-actions"><button class="mini-action {% if video.pk in liked_ids %}is-liked{% endif %}" type="button" data-action="like" data-url="{% url 'toggle_like' video.pk %}" aria-pressed="{% if video.pk in liked_ids %}true{% else %}false{% endif %}"><span class="action-icon">♡</span><span data-like-count>{{ video.like_total|default:video.likes.count }}</span></button><button class="mini-action {% if video.pk in saved_ids %}is-saved{% endif %}" type="button" data-action="save" data-url="{% url 'toggle_saved' video.pk %}" aria-label="Saqlanganlarga qo‘shish" aria-pressed="{% if video.pk in saved_ids %}true{% else %}false{% endif %}"><span class="action-icon">▣</span></button><a class="card-open" href="{% url 'video_detail' video.slug %}" aria-label="Videoni ochish">↗</a></div>
+		</div>
+	</article>
+	{% empty %}<div class="empty-state"><span>◌</span><h2>Hozircha video topilmadi</h2><p>{% if request.user.is_staff %}Yangi video qo‘shish orqali kutubxonani boshlang.{% else %}Boshqa so‘z bilan qidiring yoki keyinroq qaytib ko‘ring.{% endif %}</p>{% if request.user.is_staff %}<a class="button button-primary" href="{% url 'video_create' %}">Video yuklash <span>→</span></a>{% endif %}</div>{% endfor %}
+</div>
+{% if page_obj and page_obj.has_other_pages %}<nav class="pagination" aria-label="Sahifalar">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&category={{ selected_category }}">← Oldingi</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&category={{ selected_category }}">Keyingi →</a>{% endif %}</nav>{% endif %}
+{% endblock %}

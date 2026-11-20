@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="uz">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#111310">
+	<meta http-equiv="refresh" content="3;url={% url 'login' %}">
+	<title>Yahyobek Yaqubboyev · VideoHub</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+	<script defer src="{% static 'js/script.js' %}"></script>
+</head>
+<body class="splash-page" data-splash data-redirect-url="{% url 'login' %}">
+	<main class="splash-shell">
+		<header class="splash-header"><a class="brand" href="{% url 'splash' %}"><span class="brand-mark">V</span><span>Video<span class="brand-light">Hub</span></span></a><span class="splash-edition">PERSONAL VIDEO SPACE <i></i></span></header>
+		<section class="splash-center" aria-label="VideoHub">
+			<span class="splash-kicker"><i></i> VIDEOHUB / WELCOME</span>
+			<h1>Yahyobek<br><em>Yaqubboyev</em></h1>
+			<p>Tomosha qilish uchun yangi makon.</p>
+			<div class="splash-progress" aria-hidden="true"><span></span></div>
+			<div class="splash-footnote"><span>VIDEOHUB</span><span>DAVOM ETMOQDA <b>03 SEC</b></span></div>
+		</section>
+		<footer class="splash-footer"><span>UZBEKISTAN</span><span>EST. VIDEOHUB</span><span>01 — 03</span></footer>
+	</main>
+</body>
+</html>

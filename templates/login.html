@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Kirish · VideoHub{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+{% block content %}
+<section class="auth-layout">
+	<div class="auth-art">
+		<div class="auth-art-copy"><span class="eyebrow"><i></i> VIDEOHUB ORIGINAL</span><h1>Hikoyalar<br>shu yerdan<br><em>boshlanadi.</em></h1><p>Sevimli videolaringiz, bitta makonda.</p></div>
+		<div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-stamp">PLAY<br>YOUR<br>WORLD</div>
+	</div>
+	<div class="auth-panel"><a class="brand auth-brand" href="{% url 'login' %}"><span class="brand-mark">V</span><span>Video<span class="brand-light">Hub</span></span></a>
+		<div class="auth-heading"><span class="eyebrow">QAYTA XUSH KELIBSIZ</span><h2>Hisobingizga kiring</h2><p>Tomosha qilishni davom ettirish uchun ma’lumotlaringizni kiriting.</p></div>
+		<form method="post" class="form-stack">{% csrf_token %}
+			<label class="field"><span>Telefon raqam yoki login</span><input name="phone" type="text" autocomplete="username" placeholder="Telefon raqam yoki login" required autofocus></label>
+			<label class="field"><span>Parol</span><input name="password" type="password" autocomplete="current-password" placeholder="Parolingiz" required></label>
+			<button class="button button-primary button-wide" type="submit">Kirish <span>→</span></button>
+		</form>
+		<p class="auth-switch">Hisobingiz yo‘qmi? <a href="{% url 'register' %}">Ro‘yxatdan o‘ting</a></p>
+		<a class="public-info-link" href="{% url 'info' %}">VideoHub haqida ↗</a>
+	</div>
+</section>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} · VideoHub{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow">KATEGORIYALAR / BOSHQARUV</span><h1>{{ page_title }}</h1></div></section>
+<section class="panel form-panel narrow-panel"><form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<label class="field"><span>{{ field.label }}</span>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<div class="form-actions"><a class="button button-quiet" href="{% url 'admin_panel' %}">Bekor qilish</a><button class="button button-primary" type="submit">Saqlash <span>→</span></button></div></form></section>
+{% endblock %}

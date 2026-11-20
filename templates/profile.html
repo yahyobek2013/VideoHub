@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Profil · VideoHub{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow">SHAXSIY KABINET</span><h1>Profil sozlamalari</h1><p>Hisobingiz va tomosha faolligingiz.</p></div><button class="button button-quiet" type="button" data-open-logout aria-haspopup="dialog">Chiqish <span>↗</span></button></section>
+<div class="profile-grid">
+	<section class="panel profile-card"><div class="profile-identity"><span class="avatar avatar-large">{{ request.user.first_name|default:request.user.phone|first|upper }}</span><div><h2>{{ request.user.first_name|default:'VideoHub a’zosi' }}</h2><p>{{ request.user.phone }}</p></div></div>
+		<form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<label class="field"><span>{{ field.label }}</span>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}<button class="button button-primary" type="submit">O‘zgarishlarni saqlash <span>→</span></button></form>
+		<a class="button button-outline profile-password" href="{% url 'password_change' %}">Parolni o‘zgartirish <span>↗</span></a>
+	</section>
+	<section class="panel activity-panel"><div class="section-title"><div><span class="eyebrow">SIZNING FAOLLIGINGIZ</span><h2>Video kutubxonangiz</h2></div></div>
+		<a class="activity-link" href="{% url 'personal_videos' 'saved' %}"><span class="activity-icon">▣</span><span><b>Saqlangan videolar</b><small>Keyinroq ko‘rish uchun</small></span><strong>{{ saved_count }}</strong><i>→</i></a>
+		<a class="activity-link" href="{% url 'personal_videos' 'liked' %}"><span class="activity-icon activity-heart">♡</span><span><b>Yoqtirgan videolar</b><small>Like bosilgan videolar</small></span><strong>{{ liked_count }}</strong><i>→</i></a>
+		<a class="activity-link" href="{% url 'personal_videos' 'reacted' %}"><span class="activity-icon activity-star">✦</span><span><b>Reaksiyalar</b><small>Fikr bildirgan videolar</small></span><strong>{{ reaction_count }}</strong><i>→</i></a>
+		<div class="profile-note"><span>✦</span><p>Ma’lumotlaringiz faqat shu hisob orqali boshqariladi.</p></div>
+	</section>
+</div>
+<dialog class="confirm-dialog" id="logout-confirm" aria-labelledby="logout-title">
+	<div class="confirm-mark">↗</div>
+	<span class="eyebrow">VIDEOHUB / HISOB</span>
+	<h2 id="logout-title">Hisobdan chiqasizmi?</h2>
+	<p>Akkauntingizdan chiqishni tasdiqlang.</p>
+	<div class="confirm-actions"><button class="button button-quiet" type="button" data-close-logout>Yo‘q, qolish</button><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="button button-primary" type="submit">Ha, chiqish <span>→</span></button></form></div>
+</dialog>
+{% endblock %}

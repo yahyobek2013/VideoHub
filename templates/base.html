@@ -1,0 +1,70 @@
+{% load static %}
+<!doctype html>
+<html lang="uz">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#101210">
+	<title>{% block title %}VideoHub{% endblock %}</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+	<script defer src="{% static 'js/script.js' %}"></script>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+	{% if request.user.is_authenticated %}
+	<aside class="sidebar">
+		<a class="brand" href="{% url 'home' %}"><span class="brand-mark">V</span><span>Video<span class="brand-light">Hub</span></span></a>
+		<div class="sidebar-label">Kutubxona</div>
+		<nav class="side-nav" aria-label="Asosiy navigatsiya">
+			<a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}is-active{% endif %}"><span class="nav-icon">⌂</span> Bosh sahifa</a>
+			<a href="{% url 'personal_videos' 'saved' %}" class="nav-link"><span class="nav-icon">▣</span> Saqlanganlar</a>
+			<a href="{% url 'personal_videos' 'liked' %}" class="nav-link"><span class="nav-icon">♡</span> Yoqtirganlar</a>
+			<a href="{% url 'personal_videos' 'reacted' %}" class="nav-link"><span class="nav-icon">✦</span> Reaksiyalar</a>
+		</nav>
+		{% if request.user.is_staff %}
+		<div class="sidebar-label">Boshqaruv</div>
+		<nav class="side-nav">
+			<a href="{% url 'admin_panel' %}" class="nav-link"><span class="nav-icon">▤</span> Admin paneli</a>
+			<a href="{% url 'video_create' %}" class="nav-link"><span class="nav-icon">＋</span> Video yuklash</a>
+		</nav>
+		{% endif %}
+		<div class="sidebar-spacer"></div>
+		<a href="{% url 'info' %}" class="nav-link"><span class="nav-icon">ⓘ</span> VideoHub haqida</a>
+		<a href="{% url 'profile' %}" class="account-mini"><span class="avatar">{{ request.user.first_name|default:request.user.phone|first|upper }}</span><span><b>{{ request.user.first_name|default:request.user.phone }}</b><small>Profil sozlamalari</small></span><span class="account-arrow">↗</span></a>
+	</aside>
+	{% endif %}
+
+	<div class="app-shell {% if not request.user.is_authenticated %}app-shell-public{% endif %}">
+		{% if request.user.is_authenticated %}
+		<header class="topbar">
+			<a class="brand top-brand" href="{% url 'home' %}"><span class="brand-mark">V</span><span>Video<span class="brand-light">Hub</span></span></a>
+			<form class="top-search" action="{% url 'home' %}" method="get" role="search">
+				<span aria-hidden="true">⌕</span><input type="search" name="q" placeholder="Video qidirish..." value="{{ query|default:'' }}" aria-label="Video qidirish">
+				<kbd>↵</kbd>
+			</form>
+			<div class="top-actions">
+				{% if request.user.is_staff %}<a class="icon-button upload-top" href="{% url 'video_create' %}" aria-label="Video yuklash" title="Video yuklash">＋</a>{% endif %}
+				<a class="top-avatar" href="{% url 'profile' %}" aria-label="Profil">{{ request.user.first_name|default:request.user.phone|first|upper }}</a>
+			</div>
+		</header>
+		{% endif %}
+
+		<main class="main-content">
+			{% if messages %}<div class="messages" aria-live="polite">{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}<button type="button" class="message-close" aria-label="Yopish">×</button></div>{% endfor %}</div>{% endif %}
+			{% block content %}{% endblock %}
+		</main>
+	</div>
+
+	{% if request.user.is_authenticated %}
+	<nav class="mobile-nav" aria-label="Mobil navigatsiya">
+		<a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}is-active{% endif %}"><span>⌂</span><small>Bosh sahifa</small></a>
+		<a href="{% url 'personal_videos' 'saved' %}"><span>▣</span><small>Saqlangan</small></a>
+		<a href="{% url 'personal_videos' 'liked' %}"><span>♡</span><small>Yoqtirgan</small></a>
+		<a href="{% url 'profile' %}"><span>◉</span><small>Profil</small></a>
+	</nav>
+	{% endif %}
+	<form hidden id="csrf-token-form">{% csrf_token %}</form>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} · VideoHub{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow">VIDEO KUTUBXONASI / BOSHQARUV</span><h1>{{ page_title }}</h1><p>Video ma’lumotlari va media fayllarini kiriting.</p></div></section>
+<section class="panel form-panel narrow-panel"><form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}{% for field in form %}<label class="field"><span>{{ field.label }}</span>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}{% for error in form.non_field_errors %}<div class="form-error">{{ error }}</div>{% endfor %}<div class="form-actions"><a class="button button-quiet" href="{% url 'admin_panel' %}">Bekor qilish</a><button class="button button-primary" type="submit">Saqlash <span>→</span></button></div></form></section>
+{% endblock %}
