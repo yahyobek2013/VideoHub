@@ -80,6 +80,28 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("admin_panel"))
 
+    def test_registration_post_creates_user_and_starts_session(self):
+        response = self.client.post(reverse("register"), {
+            "first_name": "New Viewer",
+            "phone": "+998 90 123 45 75",
+            "password1": "test-password",
+            "password2": "test-password",
+        })
+
+        self.assertRedirects(response, reverse("home"))
+        user = User.objects.get(phone="+998901234575")
+        self.assertTrue(user.check_password("test-password"))
+        self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
+
+    def test_logout_post_ends_session(self):
+        user = User.objects.create_user(phone="+998901234576", password="q", first_name="Viewer")
+        self.client.force_login(user)
+
+        response = self.client.post(reverse("logout"))
+
+        self.assertRedirects(response, reverse("login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_profile_and_register_pages_render(self):
         self.assertEqual(self.client.get(reverse("register")).status_code, 200)
         user = User.objects.create_user(phone="+998901234570", password="q", first_name="Viewer")
