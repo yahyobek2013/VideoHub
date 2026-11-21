@@ -21,13 +21,24 @@
 <body>
 	<main>
 		<h1>SQLite diagnostikasi</h1>
+		{% if not diagnostics_ready %}
+			{% if not token_configured %}
+				<p class="status bad">Diagnostika tokeni sozlanmagan.</p>
+			{% else %}
+				<form method="post">
+					{% csrf_token %}
+					<label for="diagnostics-token">Diagnostika tokeni</label>
+					<p><input id="diagnostics-token" name="token" type="password" autocomplete="off" required></p>
+					<button type="submit">Tekshirish</button>
+					{% if invalid_token %}<p class="status bad">Token noto‘g‘ri.</p>{% endif %}
+				</form>
+			{% endif %}
+		{% else %}
 		<section>
-			<h2>Database fayli</h2>
-			<p><code>{{ database_path }}</code></p>
-			<p class="status {% if database_exists %}ok{% else %}bad{% endif %}">
-				Fayl: {% if database_exists %}mavjud{% else %}topilmadi{% endif %}
+			<h2>SQLite schema</h2>
+			<p class="status {% if schema_readable %}ok{% else %}bad{% endif %}">
+				{% if schema_readable %}Schema o‘qildi.{% else %}Schema o‘qilmadi.{% endif %}
 			</p>
-			{% if connection_error %}<p class="status bad">Ulanish xatosi: {{ connection_error }}</p>{% endif %}
 		</section>
 		<section>
 			<h2>Jadvallar</h2>
@@ -46,10 +57,11 @@
 		</section>
 		<section>
 			<h2>accounts migrationlar</h2>
-			{% if account_migrations %}
-				<ul>{% for migration in account_migrations %}<li><code>{{ migration }}</code></li>{% endfor %}</ul>
-			{% else %}<p>accounts migration бүртгэл алга.</p>{% endif %}
+			<ul>{% for migration in account_migrations %}
+				<li><code>{{ migration.name }}</code>: {% if migration.applied %}applied{% else %}applied болоогүй{% endif %}</li>
+			{% endfor %}</ul>
 		</section>
+		{% endif %}
 	</main>
 </body>
 </html>

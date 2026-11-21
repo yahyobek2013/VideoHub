@@ -13,7 +13,7 @@ from .models import User
 
 
 class AccountFlowTests(TestCase):
-    def test_sqlite_diagnostics_is_superuser_only_and_read_only(self):
+    def test_sqlite_diagnostics_requires_token_and_is_read_only(self):
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "diagnostics.sqlite3"
             connection = sqlite3.connect(database_path)
@@ -22,6 +22,10 @@ class AccountFlowTests(TestCase):
             )
             connection.execute(
                 "CREATE TABLE django_migrations (app TEXT, name TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO accounts_user (id, password, login_name, phone) VALUES (?, ?, ?, ?)",
+                (1, "dummy-password-value", "private-alias", "+998901234581"),
             )
             connection.execute(
                 "INSERT INTO django_migrations (app, name) VALUES (?, ?)",
@@ -35,29 +39,28 @@ class AccountFlowTests(TestCase):
                     "ENGINE": "django.db.backends.sqlite3",
                     "NAME": str(database_path),
                 }
-            }):
+            }), patch.dict("os.environ", {"VH_SQLITE_DIAGNOSTICS_TOKEN": "diagnostic-test-token"}):
                 url = reverse("sqlite_diagnostics")
-                self.assertEqual(self.client.get(url).status_code, 302)
+                get_response = self.client.get(url)
+                self.assertEqual(get_response.status_code, 200)
+                self.assertContains(get_response, 'name="token"')
+                self.assertNotContains(get_response, "accounts_user")
 
-                staff = User.objects.create_user(
-                    phone="+998901234580", password="q", first_name="Staff", is_staff=True,
-                )
-                self.client.force_login(staff)
-                self.assertEqual(self.client.get(url).status_code, 403)
-                self.assertEqual(self.client.post(url).status_code, 405)
+                invalid_response = self.client.post(url, {"token": "wrong-token"})
+                self.assertEqual(invalid_response.status_code, 403)
+                self.assertNotIn(b"accounts_user", invalid_response.content)
 
-                admin = User.objects.create_superuser(
-                    phone="+998901234581", password="q", first_name="Admin",
-                )
-                self.client.force_login(admin)
-                response = self.client.get(url)
+                response = self.client.post(url, {"token": "diagnostic-test-token"})
 
             self.assertEqual(response.status_code, 200)
-            self.assertContains(response, str(database_path))
             self.assertContains(response, "accounts_user")
             self.assertContains(response, "login_name")
             self.assertContains(response, "0002_user_login_name")
-            self.assertNotContains(response, admin.phone)
+            self.assertContains(response, "applied")
+            self.assertNotContains(response, "diagnostic-test-token")
+            self.assertNotContains(response, "dummy-password-value")
+            self.assertNotContains(response, "private-alias")
+            self.assertNotContains(response, "+998901234581")
             self.assertNotContains(response, "SECRET_KEY")
 
             connection = sqlite3.connect(f"{database_path.as_uri()}?mode=ro", uri=True)
@@ -66,6 +69,15 @@ class AccountFlowTests(TestCase):
             ).fetchall()
             connection.close()
             self.assertEqual(migrations, [("0002_user_login_name",)])
+
+    def test_sqlite_diagnostics_is_disabled_without_token(self):
+        with patch.dict("os.environ") as environment:
+            environment.pop("VH_SQLITE_DIAGNOSTICS_TOKEN", None)
+            with patch("accounts.views.sqlite3.connect") as connect:
+                response = self.client.get(reverse("sqlite_diagnostics"))
+
+        self.assertEqual(response.status_code, 503)
+        connect.assert_not_called()
 
     def test_admin_bootstrap_is_repeatable_and_keeps_login_credentials(self):
         with patch.dict("os.environ", {"VH_ADMIN_PASSWORD": "ybek"}):

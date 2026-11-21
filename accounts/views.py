@@ -1,15 +1,17 @@
+import hmac
 import logging
+import os
 import sqlite3
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.core.exceptions import PermissionDenied
-from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods, require_POST
 
 from videos.forms import CategoryForm
 from videos.models import Category, SavedVideo, Video, VideoLike, VideoReaction
@@ -151,25 +153,37 @@ def admin_panel(request):
 	return render(request, "admin_panel.html", context)
 
 
-@require_GET
-@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
 def sqlite_diagnostics(request):
-	if not request.user.is_active or not request.user.is_superuser:
-		raise PermissionDenied
+	diagnostics_token = os.environ.get("VH_SQLITE_DIAGNOSTICS_TOKEN", "")
+	if not diagnostics_token:
+		return render(request, "sqlite_diagnostics.html", {"token_configured": False}, status=503)
+	if request.method != "POST":
+		return render(request, "sqlite_diagnostics.html", {"token_configured": True})
+
+	submitted_token = request.POST.get("token", "")
+	if not hmac.compare_digest(submitted_token.encode("utf-8"), diagnostics_token.encode("utf-8")):
+		return render(request, "sqlite_diagnostics.html", {
+			"token_configured": True,
+			"invalid_token": True,
+		}, status=403)
 
 	database_path = Path(settings.DATABASES["default"]["NAME"])
 	known_tables = {"accounts_user", "django_migrations"}
+	expected_migrations = ("0001_initial", "0002_user_login_name")
 	expected_columns = {
 		"id", "password", "last_login", "is_superuser", "first_name", "last_name",
 		"email", "is_staff", "is_active", "date_joined", "phone", "login_name",
 	}
 	result = {
-		"database_path": str(database_path),
-		"database_exists": database_path.is_file(),
-		"connection_error": None,
+		"diagnostics_ready": True,
+		"schema_readable": False,
 		"tables": {name: False for name in sorted(known_tables)},
 		"missing_user_columns": sorted(expected_columns),
-		"account_migrations": [],
+		"account_migrations": [
+			{"name": name, "applied": False} for name in expected_migrations
+		],
 	}
 
 	try:
@@ -191,17 +205,22 @@ def sqlite_diagnostics(request):
 				}
 				result["missing_user_columns"] = sorted(expected_columns - columns)
 			if "django_migrations" in tables:
-				result["account_migrations"] = [
+				applied_migrations = {
 					row[0]
 					for row in connection.execute(
 						"SELECT name FROM django_migrations WHERE app = ? ORDER BY name",
 						("accounts",),
 					)
+				}
+				result["account_migrations"] = [
+					{"name": name, "applied": name in applied_migrations}
+					for name in expected_migrations
 				]
+			result["schema_readable"] = True
 		finally:
 			connection.close()
-	except (OSError, sqlite3.Error) as exc:
-		result["connection_error"] = type(exc).__name__
+	except (OSError, sqlite3.Error):
+		pass
 
 	return render(request, "sqlite_diagnostics.html", result)
 
