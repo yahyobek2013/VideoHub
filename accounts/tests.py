@@ -80,6 +80,38 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("admin_panel"))
 
+    def test_login_failure_logs_stage_without_credentials(self):
+        self.client.raise_request_exception = False
+        with patch("accounts.views.authenticate", side_effect=RuntimeError("test-only failure")):
+            with self.assertLogs("accounts.auth", level="ERROR") as captured:
+                response = self.client.post(reverse("login"), {
+                    "phone": "+998901234577",
+                    "password": "login-secret-test-value",
+                })
+
+        self.assertEqual(response.status_code, 500)
+        log_output = "\n".join(captured.output)
+        self.assertIn("flow=login stage=authenticate exception=RuntimeError", log_output)
+        self.assertNotIn("login-secret-test-value", log_output)
+        self.assertNotIn("+998901234577", log_output)
+
+    def test_registration_failure_logs_stage_without_credentials(self):
+        self.client.raise_request_exception = False
+        with patch("accounts.forms.RegistrationForm.save", side_effect=RuntimeError("test-only failure")):
+            with self.assertLogs("accounts.auth", level="ERROR") as captured:
+                response = self.client.post(reverse("register"), {
+                    "first_name": "Test User",
+                    "phone": "+998901234578",
+                    "password1": "register-secret-test-value",
+                    "password2": "register-secret-test-value",
+                })
+
+        self.assertEqual(response.status_code, 500)
+        log_output = "\n".join(captured.output)
+        self.assertIn("flow=register stage=save_user exception=RuntimeError", log_output)
+        self.assertNotIn("register-secret-test-value", log_output)
+        self.assertNotIn("+998901234578", log_output)
+
     def test_registration_post_creates_user_and_starts_session(self):
         response = self.client.post(reverse("register"), {
             "first_name": "New Viewer",

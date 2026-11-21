@@ -105,3 +105,18 @@ CSRF_COOKIE_SECURE = not _DEVELOPMENT_MODE
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", ".onrender.com", "yahyovdhub.onrender.com"]
 CSRF_TRUSTED_ORIGINS = ["https://yahyovdhub.onrender.com"]
 DEBUG = _DEVELOPMENT_MODE
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'accounts_console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'accounts.auth': {
+            'handlers': ['accounts_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}

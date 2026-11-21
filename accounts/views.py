@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -12,19 +14,30 @@ from .forms import AdminUserEditForm, AdminUserForm, ProfileForm, RegistrationFo
 from .models import User, normalize_phone
 
 
+auth_logger = logging.getLogger("accounts.auth")
+
+
 def login_view(request):
 	if request.user.is_authenticated:
 		return redirect("admin_panel" if request.user.is_staff else "home")
 	if request.method == "POST":
-		identifier = request.POST.get("phone", "").strip()
-		phone = normalize_phone(identifier)
-		if not phone.replace("+", "").isdigit():
-			phone = User.objects.filter(login_name__iexact=identifier, is_active=True).values_list("phone", flat=True).first() or ""
-		user = authenticate(request, phone=phone, password=request.POST.get("password", ""))
-		if user is not None:
-			login(request, user)
-			return redirect("admin_panel" if user.is_staff else "home")
-		messages.error(request, "Telefon raqam yoki parol noto‘g‘ri.")
+		stage = "read_identifier"
+		try:
+			identifier = request.POST.get("phone", "").strip()
+			phone = normalize_phone(identifier)
+			if not phone.replace("+", "").isdigit():
+				stage = "lookup_login_name"
+				phone = User.objects.filter(login_name__iexact=identifier, is_active=True).values_list("phone", flat=True).first() or ""
+			stage = "authenticate"
+			user = authenticate(request, phone=phone, password=request.POST.get("password", ""))
+			if user is not None:
+				stage = "create_session"
+				login(request, user)
+				return redirect("admin_panel" if user.is_staff else "home")
+			messages.error(request, "Telefon raqam yoki parol noto‘g‘ri.")
+		except Exception as exc:
+			auth_logger.error("Authentication POST failed: flow=login stage=%s exception=%s", stage, type(exc).__name__)
+			raise
 	return render(request, "login.html")
 
 
@@ -38,11 +51,19 @@ def register_view(request):
 	if request.user.is_authenticated:
 		return redirect("home")
 	form = RegistrationForm(request.POST or None)
-	if request.method == "POST" and form.is_valid():
-		user = form.save()
-		login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-		messages.success(request, "VideoHub’ga xush kelibsiz!")
-		return redirect("home")
+	if request.method == "POST":
+		stage = "validate_registration"
+		try:
+			if form.is_valid():
+				stage = "save_user"
+				user = form.save()
+				stage = "create_session"
+				login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+				messages.success(request, "VideoHub’ga xush kelibsiz!")
+				return redirect("home")
+		except Exception as exc:
+			auth_logger.error("Authentication POST failed: flow=register stage=%s exception=%s", stage, type(exc).__name__)
+			raise
 	return render(request, "register.html", {"form": form})
 
 
