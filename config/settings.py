@@ -53,10 +53,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+_SQLITE_PATH = Path(os.environ.get('DJANGO_SQLITE_PATH', BASE_DIR / 'db.sqlite3'))
+if not _DEVELOPMENT_MODE:
+    _SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('DJANGO_SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+        'NAME': _SQLITE_PATH,
     }
 }
 
@@ -77,11 +81,13 @@ STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
-        if _DEVELOPMENT_MODE else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        if _DEVELOPMENT_MODE else 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 MEDIA_URL = '/media/'
 MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media'))
+if not _DEVELOPMENT_MODE:
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -96,6 +102,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not _DEVELOPMENT_MODE
 CSRF_COOKIE_SECURE = not _DEVELOPMENT_MODE
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "yahyovdhub.onrender.com"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", ".onrender.com", "yahyovdhub.onrender.com"]
 CSRF_TRUSTED_ORIGINS = ["https://yahyovdhub.onrender.com"]
-DEBUG = False
+DEBUG = _DEVELOPMENT_MODE

@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
-    startCommand: python manage.py migrate --noinput && python manage.py ensure_videohub_admin && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: python manage.py collectstatic --no-input && python manage.py migrate --noinput && python manage.py ensure_videohub_admin && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /login/
     disk:
       name: videohub-data
@@ -13,6 +13,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.4
+      - key: RENDER
+        value: "true"
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
