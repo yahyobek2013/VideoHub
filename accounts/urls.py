@@ -16,6 +16,7 @@ urlpatterns = [
 	path("profile/videos/<str:list_type>/", views.personal_videos, name="personal_videos"),
 	path("info/", views.info_view, name="info"),
 	path("dashboard/admin/", views.admin_panel, name="admin_panel"),
+	path("dashboard/admin/diagnostics/sqlite/", views.sqlite_diagnostics, name="sqlite_diagnostics"),
 	path("dashboard/admin/users/add/", views.admin_user_add, name="admin_user_add"),
 	path("dashboard/admin/users/<int:user_id>/edit/", views.admin_user_edit, name="admin_user_edit"),
 	path("dashboard/admin/users/<int:user_id>/delete/", views.admin_user_delete, name="admin_user_delete"),

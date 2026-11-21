@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="uz">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>SQLite diagnostikasi</title>
+	<style>
+		:root { color-scheme: light; font-family: "Segoe UI", sans-serif; background: #f2f5f2; color: #17231d; }
+		body { margin: 0; padding: 32px 16px; }
+		main { max-width: 760px; margin: 0 auto; }
+		h1 { font-size: 24px; margin: 0 0 24px; }
+		h2 { font-size: 16px; margin: 24px 0 8px; }
+		section { border-top: 1px solid #cbd5ce; padding-top: 4px; }
+		code, pre { font-family: Consolas, monospace; overflow-wrap: anywhere; }
+		pre { background: #e6ece7; padding: 12px; white-space: pre-wrap; }
+		.status { font-weight: 600; }
+		.ok { color: #17653d; }
+		.bad { color: #a32929; }
+	</style>
+</head>
+<body>
+	<main>
+		<h1>SQLite diagnostikasi</h1>
+		<section>
+			<h2>Database fayli</h2>
+			<p><code>{{ database_path }}</code></p>
+			<p class="status {% if database_exists %}ok{% else %}bad{% endif %}">
+				Fayl: {% if database_exists %}mavjud{% else %}topilmadi{% endif %}
+			</p>
+			{% if connection_error %}<p class="status bad">Ulanish xatosi: {{ connection_error }}</p>{% endif %}
+		</section>
+		<section>
+			<h2>Jadvallar</h2>
+			<ul>{% for table, exists in tables.items %}
+				<li><code>{{ table }}</code>: {% if exists %}mavjud{% else %}mavjud emas{% endif %}</li>
+			{% endfor %}</ul>
+		</section>
+		<section>
+			<h2>accounts_user ustunlari</h2>
+			{% if missing_user_columns %}
+				<p class="status bad">Yetishmayotgan ustunlar:</p>
+				<ul>{% for column in missing_user_columns %}<li><code>{{ column }}</code></li>{% endfor %}</ul>
+			{% else %}
+				<p class="status ok">Kerakli ustunlar mavjud.</p>
+			{% endif %}
+		</section>
+		<section>
+			<h2>accounts migrationlar</h2>
+			{% if account_migrations %}
+				<ul>{% for migration in account_migrations %}<li><code>{{ migration }}</code></li>{% endfor %}</ul>
+			{% else %}<p>accounts migration бүртгэл алга.</p>{% endif %}
+		</section>
+	</main>
+</body>
+</html>

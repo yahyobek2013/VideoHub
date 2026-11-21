@@ -1,11 +1,15 @@
 import logging
+import sqlite3
+from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from videos.forms import CategoryForm
 from videos.models import Category, SavedVideo, Video, VideoLike, VideoReaction
@@ -145,6 +149,61 @@ def admin_panel(request):
 		"reactions": VideoReaction.objects.select_related("user", "video").order_by("-updated_at")[:100],
 	}
 	return render(request, "admin_panel.html", context)
+
+
+@require_GET
+@login_required
+def sqlite_diagnostics(request):
+	if not request.user.is_active or not request.user.is_superuser:
+		raise PermissionDenied
+
+	database_path = Path(settings.DATABASES["default"]["NAME"])
+	known_tables = {"accounts_user", "django_migrations"}
+	expected_columns = {
+		"id", "password", "last_login", "is_superuser", "first_name", "last_name",
+		"email", "is_staff", "is_active", "date_joined", "phone", "login_name",
+	}
+	result = {
+		"database_path": str(database_path),
+		"database_exists": database_path.is_file(),
+		"connection_error": None,
+		"tables": {name: False for name in sorted(known_tables)},
+		"missing_user_columns": sorted(expected_columns),
+		"account_migrations": [],
+	}
+
+	try:
+		connection = sqlite3.connect(f"{database_path.as_uri()}?mode=ro", uri=True, timeout=2)
+		try:
+			connection.execute("PRAGMA query_only = ON")
+			tables = {
+				row[0]
+				for row in connection.execute(
+					"SELECT name FROM sqlite_master WHERE type = ? AND name IN (?, ?)",
+					("table", *sorted(known_tables)),
+				)
+			}
+			result["tables"] = {name: name in tables for name in sorted(known_tables)}
+			if "accounts_user" in tables:
+				columns = {
+					row[1]
+					for row in connection.execute("PRAGMA table_info(accounts_user)")
+				}
+				result["missing_user_columns"] = sorted(expected_columns - columns)
+			if "django_migrations" in tables:
+				result["account_migrations"] = [
+					row[0]
+					for row in connection.execute(
+						"SELECT name FROM django_migrations WHERE app = ? ORDER BY name",
+						("accounts",),
+					)
+				]
+		finally:
+			connection.close()
+	except (OSError, sqlite3.Error) as exc:
+		result["connection_error"] = type(exc).__name__
+
+	return render(request, "sqlite_diagnostics.html", result)
 
 
 @user_passes_test(is_staff, login_url="login")

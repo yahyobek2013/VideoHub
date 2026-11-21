@@ -1,7 +1,10 @@
 from io import StringIO
+import sqlite3
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.core.management import call_command
 
@@ -10,6 +13,60 @@ from .models import User
 
 
 class AccountFlowTests(TestCase):
+    def test_sqlite_diagnostics_is_superuser_only_and_read_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "diagnostics.sqlite3"
+            connection = sqlite3.connect(database_path)
+            connection.execute(
+                "CREATE TABLE accounts_user (id INTEGER, password TEXT, login_name TEXT, phone TEXT)"
+            )
+            connection.execute(
+                "CREATE TABLE django_migrations (app TEXT, name TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO django_migrations (app, name) VALUES (?, ?)",
+                ("accounts", "0002_user_login_name"),
+            )
+            connection.commit()
+            connection.close()
+
+            with override_settings(DATABASES={
+                "default": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": str(database_path),
+                }
+            }):
+                url = reverse("sqlite_diagnostics")
+                self.assertEqual(self.client.get(url).status_code, 302)
+
+                staff = User.objects.create_user(
+                    phone="+998901234580", password="q", first_name="Staff", is_staff=True,
+                )
+                self.client.force_login(staff)
+                self.assertEqual(self.client.get(url).status_code, 403)
+                self.assertEqual(self.client.post(url).status_code, 405)
+
+                admin = User.objects.create_superuser(
+                    phone="+998901234581", password="q", first_name="Admin",
+                )
+                self.client.force_login(admin)
+                response = self.client.get(url)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, str(database_path))
+            self.assertContains(response, "accounts_user")
+            self.assertContains(response, "login_name")
+            self.assertContains(response, "0002_user_login_name")
+            self.assertNotContains(response, admin.phone)
+            self.assertNotContains(response, "SECRET_KEY")
+
+            connection = sqlite3.connect(f"{database_path.as_uri()}?mode=ro", uri=True)
+            migrations = connection.execute(
+                "SELECT name FROM django_migrations WHERE app = ?", ("accounts",)
+            ).fetchall()
+            connection.close()
+            self.assertEqual(migrations, [("0002_user_login_name",)])
+
     def test_admin_bootstrap_is_repeatable_and_keeps_login_credentials(self):
         with patch.dict("os.environ", {"VH_ADMIN_PASSWORD": "ybek"}):
             call_command("ensure_videohub_admin", stdout=StringIO())
