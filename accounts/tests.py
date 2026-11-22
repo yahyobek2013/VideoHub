@@ -18,18 +18,18 @@ class AccountFlowTests(TestCase):
             database_path = Path(directory) / "diagnostics.sqlite3"
             connection = sqlite3.connect(database_path)
             connection.execute(
-                "CREATE TABLE accounts_user (id INTEGER, password TEXT, login_name TEXT, phone TEXT)"
+                "CREATE TABLE accounts_user (id INTEGER, password TEXT, phone TEXT, first_name TEXT)"
             )
             connection.execute(
                 "CREATE TABLE django_migrations (app TEXT, name TEXT)"
             )
             connection.execute(
-                "INSERT INTO accounts_user (id, password, login_name, phone) VALUES (?, ?, ?, ?)",
-                (1, "dummy-password-value", "private-alias", "+998901234581"),
+                "INSERT INTO accounts_user (id, password, phone, first_name) VALUES (?, ?, ?, ?)",
+                (1, "dummy-password-value", "+998901234581", "private-alias"),
             )
             connection.execute(
                 "INSERT INTO django_migrations (app, name) VALUES (?, ?)",
-                ("accounts", "0002_user_login_name"),
+                ("accounts", "0001_initial"),
             )
             connection.commit()
             connection.close()
@@ -56,7 +56,12 @@ class AccountFlowTests(TestCase):
             self.assertContains(response, "accounts_user")
             self.assertContains(response, "login_name")
             self.assertContains(response, "0002_user_login_name")
-            self.assertContains(response, "applied")
+            self.assertIn("login_name", response.context["missing_user_columns"])
+            migrations = {
+                migration["name"]: migration["applied"]
+                for migration in response.context["account_migrations"]
+            }
+            self.assertFalse(migrations["0002_user_login_name"])
             self.assertNotContains(response, "diagnostic-test-token")
             self.assertNotContains(response, "dummy-password-value")
             self.assertNotContains(response, "private-alias")
@@ -68,7 +73,7 @@ class AccountFlowTests(TestCase):
                 "SELECT name FROM django_migrations WHERE app = ?", ("accounts",)
             ).fetchall()
             connection.close()
-            self.assertEqual(migrations, [("0002_user_login_name",)])
+            self.assertEqual(migrations, [("0001_initial",)])
 
     def test_sqlite_diagnostics_is_disabled_without_token(self):
         with patch.dict("os.environ") as environment:
